@@ -1,0 +1,339 @@
+import React, { useState, useMemo } from "react";
+import { motion } from "framer-motion";
+import { CheckCircle2, Send, Shield, EyeOff, Sparkles, Loader2, User2, HeartHandshake, Stars } from "lucide-react";
+
+// Single-file React app for "Clasa 6B" — luxury look & anonymous inbox
+// TailwindCSS + shadcn style primitives are available
+// Messages are delivered via Formspree (no Gmail/phone required)
+// Endpoint provided by you:
+const FORMSPREE_ENDPOINT = "https://formspree.io/f/mdkdyvgg";
+
+function cn(...classes) {
+  return classes.filter(Boolean).join(" ");
+}
+
+const Input = React.forwardRef(({ className, ...props }, ref) => (
+  <input
+    ref={ref}
+    className={cn(
+      "w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-base text-white placeholder-white/50 shadow-inner outline-none transition focus:border-white/30 focus:ring-2 focus:ring-white/20",
+      className
+    )}
+    {...props}
+  />
+));
+Input.displayName = "Input";
+
+const Textarea = React.forwardRef(({ className, ...props }, ref) => (
+  <textarea
+    ref={ref}
+    className={cn(
+      "w-full min-h-[160px] rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-base text-white placeholder-white/50 shadow-inner outline-none transition focus:border-white/30 focus:ring-2 focus:ring-white/20",
+      className
+    )}
+    {...props}
+  />
+));
+Textarea.displayName = "Textarea";
+
+const Button = ({ className, children, loading, ...props }) => (
+  <button
+    className={cn(
+      "inline-flex items-center justify-center gap-2 rounded-2xl bg-white/10 px-5 py-3 text-white backdrop-blur transition hover:bg-white/20 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed",
+      className
+    )}
+    {...props}
+  >
+    {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+    {children}
+  </button>
+);
+
+const Toggle = ({ enabled, onChange }) => (
+  <button
+    type="button"
+    onClick={() => onChange(!enabled)}
+    className={cn(
+      "relative inline-flex h-9 w-[66px] items-center rounded-full border border-white/15 bg-white/10 p-1 transition",
+      enabled ? "ring-2 ring-white/20" : ""
+    )}
+    aria-pressed={enabled}
+  >
+    <span className="sr-only">Toggle</span>
+    <span
+      className={cn(
+        "inline-block h-7 w-7 transform rounded-full bg-white shadow transition",
+        enabled ? "translate-x-9" : "translate-x-0"
+      )}
+    />
+  </button>
+);
+
+export default function Clasa6BInbox() {
+  const [name, setName] = useState("");
+  const [message, setMessage] = useState("");
+  const [anonymous, setAnonymous] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+  const [chars, setChars] = useState(0);
+  const [agree, setAgree] = useState(true);
+  const [website, setWebsite] = useState(""); // honeypot
+
+  const maxChars = 1200;
+  const remaining = useMemo(() => Math.max(0, maxChars - chars), [chars]);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError("");
+
+    if (!agree) {
+      setError("Te rog bifează acordul minim (anti-spam).");
+      return;
+    }
+    if (!message || message.trim().length < 5) {
+      setError("Mesajul trebuie să aibă cel puțin 5 caractere.");
+      return;
+    }
+    if (website) {
+      setSubmitted(true);
+      setMessage("");
+      setName("");
+      return;
+    }
+
+    const payload = {
+      message,
+      ...(anonymous ? {} : { name: name || "(fără nume)" }),
+      anonymous: anonymous ? "da" : "nu",
+      clasa: "6B",
+      source: "clasa6b-luxury-inbox",
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      setSubmitting(true);
+      const res = await fetch(FORMSPREE_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("Trimiterea a eșuat. Încearcă din nou.");
+
+      setSubmitted(true);
+      setMessage("");
+      setName("");
+      setAnonymous(true);
+    } catch (err) {
+      console.error(err);
+      setError(err?.message || "A apărut o eroare neașteptată. Te rugăm reîncearcă.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen overflow-x-hidden bg-[#0b0b12] text-white">
+      {/* Background luxury gradient + subtle animated orbs */}
+      <div className="pointer-events-none fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-[radial-gradient(1200px_600px_at_20%_10%,rgba(255,255,255,0.08),transparent),radial-gradient(1000px_500px_at_80%_20%,rgba(156,105,255,0.15),transparent),radial-gradient(800px_400px_at_30%_80%,rgba(0,255,214,0.08),transparent)]" />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1.2 }}
+          className="absolute -top-24 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-gradient-to-br from-white/10 via-fuchsia-400/20 to-cyan-300/20 blur-3xl"
+        />
+      </div>
+
+      {/* NAV */}
+      <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+        <div className="flex items-center gap-3">
+          <div className="rounded-2xl bg-white/10 p-2 backdrop-blur">
+            <Stars className="h-6 w-6" />
+          </div>
+          <span className="text-xl font-semibold tracking-wide">Inbox Clasa 6B</span>
+        </div>
+        <div className="hidden gap-6 md:flex">
+          <a href="#features" className="text-white/80 hover:text-white">De ce?</a>
+          <a href="#form" className="text-white/80 hover:text-white">Trimite mesaj</a>
+          <a href="#reguli" className="text-white/80 hover:text-white">Reguli</a>
+          <a href="#faq" className="text-white/80 hover:text-white">Întrebări</a>
+        </div>
+      </nav>
+
+      {/* HERO */}
+      <header className="mx-auto mt-4 max-w-6xl px-6 pb-8">
+        <div className="grid items-center gap-10 md:grid-cols-2">
+          <motion.div
+            initial={{ y: 24, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8 }}
+          >
+            <h1 className="text-4xl font-semibold leading-tight md:text-6xl">
+              Mesaje pentru <span className="bg-gradient-to-r from-white via-fuchsia-200 to-cyan-200 bg-clip-text text-transparent">Clasa 6B</span>
+            </h1>
+            <p className="mt-5 max-w-[56ch] text-lg text-white/80">
+              Spune-ne ce gândești — <em>anonim sau cu nume</em>. Fără cont, fără Gmail, fără număr de telefon. Design premium, experiență super simplă.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white/80">
+                <Shield className="h-4 w-4" /> Fără autentificare
+              </div>
+              <div className="flex items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white/80">
+                <EyeOff className="h-4 w-4" /> Anonimat real
+              </div>
+              <div className="flex items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white/80">
+                <CheckCircle2 className="h-4 w-4" /> Ajunge la diriginte/organizatori
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Glassmorphism Card */}
+          <motion.div
+            id="form"
+            initial={{ y: 24, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.9, delay: 0.1 }}
+            className="rounded-3xl border border-white/15 bg-white/10 p-6 backdrop-blur-xl shadow-2xl"
+          >
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-2xl bg-white/10 p-2">
+                <User2 className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm uppercase tracking-wider text-white/70">Mod</p>
+                <p className="text-base">{anonymous ? "Anonim" : "Cu nume"}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-white/70">Trimite ca anonim</span>
+              <Toggle enabled={anonymous} onChange={setAnonymous} />
+            </div>
+
+            <div className="mt-6 h-px w-full bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+
+            <form className="mt-6 grid gap-4" onSubmit={handleSubmit}>
+              <div className={cn(anonymous ? "opacity-60" : "opacity-100")}> 
+                <label className="mb-1 block text-sm text-white/70">Nume (opțional)</label>
+                <Input
+                  type="text"
+                  placeholder="ex: Alex / Maria (sau lasă gol)"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={anonymous}
+                />
+              </div>
+
+              {/* Honeypot anti-bot */}
+              <div className="hidden">
+                <label>Website</label>
+                <input type="text" value={website} onChange={(e) => setWebsite(e.target.value)} />
+              </div>
+
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <label className="text-sm text-white/70">Mesaj</label>
+                  <span className={cn("text-xs", remaining < 60 ? "text-fuchsia-200" : "text-white/60")}>{remaining} caractere rămase</span>
+                </div>
+                <Textarea
+                  placeholder="Scrie-l aici. Exemple: propuneri pt clasă, idei de excursii, feedback pt colegi, felicitări, gânduri…"
+                  maxLength={maxChars}
+                  value={message}
+                  onChange={(e) => {
+                    setMessage(e.target.value);
+                    setChars(e.target.value.length);
+                  }}
+                />
+              </div>
+
+              <label className="mt-2 flex items-center gap-2 text-sm text-white/70">
+                <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="h-4 w-4 rounded" />
+                Confirm că mesajul e respectuos și nu conține jigniri.
+              </label>
+
+              {error ? (
+                <div className="rounded-2xl border border-white/20 bg-white/10 p-3 text-sm text-red-200">{error}</div>
+              ) : null}
+
+              {submitted ? (
+                <div className="flex items-center justify-between rounded-2xl border border-white/20 bg-white/10 p-4">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className="h-6 w-6" />
+                    <div>
+                      <p className="text-base font-medium">Mesaj trimis! Mulțumim 💜</p>
+                      <p className="text-sm text-white/70">Poți trimite încă unul sau închide pagina.</p>
+                    </div>
+                  </div>
+                  <Button type="button" onClick={() => setSubmitted(false)}>Trimite altul</Button>
+                </div>
+              ) : (
+                <Button type="submit" className="mt-2 w-full font-semibold" loading={submitting}>
+                  <Send className="h-5 w-5" /> Trimite mesajul
+                </Button>
+              )}
+            </form>
+          </motion.div>
+        </div>
+      </header>
+
+      {/* FEATURES */}
+      <section id="features" className="mx-auto max-w-6xl px-6 py-8">
+        <div className="grid gap-6 md:grid-cols-3">
+          <div className="rounded-3xl border border-white/15 bg-white/5 p-6 backdrop-blur">
+            <Sparkles className="mb-3 h-6 w-6" />
+            <h3 className="mb-2 text-lg font-semibold">Design luxury</h3>
+            <p className="text-white/70">Aspect premium, animații fluide și vizibilitate perfectă pe telefon sau laptop.</p>
+          </div>
+          <div className="rounded-3xl border border-white/15 bg-white/5 p-6 backdrop-blur">
+            <EyeOff className="mb-3 h-6 w-6" />
+            <h3 className="mb-2 text-lg font-semibold">Anonim opțional</h3>
+            <p className="text-white/70">Alegi tu: scrii cu nume sau rămâi anonim. Niciun cont necesar.</p>
+          </div>
+          <div className="rounded-3xl border border-white/15 bg-white/5 p-6 backdrop-blur">
+            <HeartHandshake className="mb-3 h-6 w-6" />
+            <h3 className="mb-2 text-lg font-semibold">Pentru comunitatea 6B</h3>
+            <p className="text-white/70">Propuneri de activități, feedback, felicitări, idei de serbări și excursii.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* RULES */}
+      <section id="reguli" className="mx-auto max-w-6xl px-6 pb-8">
+        <div className="rounded-3xl border border-white/15 bg-white/5 p-6 backdrop-blur">
+          <h2 className="mb-3 text-2xl font-semibold">Reguli scurte</h2>
+          <ul className="list-disc space-y-2 pl-6 text-white/80">
+            <li>Respect pentru colegi și profesori. Fără jigniri, bullying sau informații personale ale altora.</li>
+            <li>Critica = constructivă. Dacă semnalezi o problemă, propune și o soluție.</li>
+            <li>Nu posta linkuri dubioase sau reclame. Mesajele nepotrivite pot fi filtrate.</li>
+          </ul>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" className="mx-auto max-w-6xl px-6 pb-16">
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="rounded-3xl border border-white/15 bg-white/5 p-6 backdrop-blur">
+            <h3 className="mb-2 text-lg font-semibold">Chiar e anonim?</h3>
+            <p className="text-white/70">Da, dacă lași comutatorul pe „Trimite ca anonim”, numele nu se trimite. Formspree livrează doar conținutul mesajului și câmpurile pe care le completăm aici.</p>
+          </div>
+          <div className="rounded-3xl border border-white/15 bg-white/5 p-6 backdrop-blur">
+            <h3 className="mb-2 text-lg font-semibold">Cine vede mesajele?</h3>
+            <p className="text-white/70">Mesajele ajung în inboxul setat de organizatori/diriginte pentru clasa 6B.</p>
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t border-white/10 bg-white/5">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-6 md:flex-row">
+          <p className="text-white/60">© {new Date().getFullYear()} Clasa 6B • Inbox anonim cu design luxury</p>
+          <p className="text-white/50 text-sm">Construit cu grijă pentru comunitate. Fii bun și responsabil.</p>
+        </div>
+      </footer>
+    </div>
+  );
+}
